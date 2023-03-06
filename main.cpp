@@ -9,6 +9,7 @@
 
 class Quain {
     typedef std::pair<std::pair<std::string, std::string>, std::string> Implicant;
+//    typedef std::pair<std::vector<Implicant>, std::vector<std::string>> Column_impl;
 
     int get_coincidence_parameters(const std::string &w1, const std::string &w2) {
         int coincidence_parameters = 0;
@@ -185,7 +186,7 @@ class Quain {
     ~Quain() = default;
         
     void method(const std::vector<std::string> &y, const bool &tex = false, const std::string &symbol = "a") {
-    std::vector<std::pair<std::vector<Implicant>, std::vector<std::string>>> cols;
+        std::vector<std::pair<std::vector<Implicant>, std::vector<std::string>>> cols;
         cols.push_back(get_Implicant(y));
 
         for (;;) {  // Это надо переделать, выглядит УЖАСНО
@@ -228,13 +229,13 @@ class Quain {
 
 void get_quain_method() {
     Quain quain;
-    quain.method(std::vector<std::string>{ "ABCD", "ABcD", "ABcd", "AbCd", "AbcD", "Abcd", "aBCD", "aBCd", "aBcD"}, true, "a");
-    quain.method(std::vector<std::string>{ "ABCD", "ABCd", "ABcD", "ABcd", "AbCD", "Abcd", "aBCD", "aBCd", "aBcD"}, true, "b");
+//    quain.method(std::vector<std::string>{ "ABCD", "ABcD", "ABcd", "AbCd", "AbcD", "Abcd", "aBCD", "aBCd", "aBcD"}, true, "a");
+//    quain.method(std::vector<std::string>{ "ABCD", "ABCd", "ABcD", "ABcd", "AbCD", "Abcd", "aBCD", "aBCd", "aBcD"}, true, "b");
     quain.method(std::vector<std::string>{ "ABCD", "ABCd", "ABcd", "AbCD", "AbCd", "AbcD", "Abcd", "aBCD", "aBCd", "aBcD"}, true, "c");
-    quain.method(std::vector<std::string>{ "ABCD", "ABcD", "ABcd", "AbCd", "AbcD", "aBCD", "aBCd"}, true, "d");
-    quain.method(std::vector<std::string>{ "ABCD", "ABcD", "AbcD", "aBCD", "aBcD"}, true, "e");
-    quain.method(std::vector<std::string>{ "ABCD", "AbCD", "AbCd", "AbcD", "aBCD", "aBCd", "aBcD"}, true, "f");
-    quain.method(std::vector<std::string>{ "ABcD", "ABcd", "AbCD", "AbCd", "AbcD", "aBCD", "aBCd"}, true, "g");
+//    quain.method(std::vector<std::string>{ "ABCD", "ABcD", "ABcd", "AbCd", "AbcD", "aBCD", "aBCd"}, true, "d");
+//    quain.method(std::vector<std::string>{ "ABCD", "ABcD", "AbcD", "aBCD", "aBcD"}, true, "e");
+//    quain.method(std::vector<std::string>{ "ABCD", "AbCD", "AbCd", "AbcD", "aBCD", "aBCd", "aBcD"}, true, "f");
+//    quain.method(std::vector<std::string>{ "ABcD", "ABcd", "AbCD", "AbCd", "AbcD", "aBCD", "aBCd"}, true, "g");
 }
 
 int main() {
