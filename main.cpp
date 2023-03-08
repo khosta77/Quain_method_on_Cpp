@@ -7,6 +7,9 @@
 #include <algorithm>
 #include <iomanip>
 
+#define PDNF 1  // Perfect Disjunctive Normal Form()
+#define PCNF 2  // Perfect Conjunctive Normal Form()
+
 class Quain {
     /* \struct Impl - импликант, выражение в строке */
     struct Impl {
@@ -37,7 +40,11 @@ class Quain {
     typedef std::pair<Impl, std::string> Row;  // Cтрока одной колонки
     typedef std::vector<Row> Col;              // Одна колонка
 
-    std::vector<Col> cols;  // Колонки
+    std::vector<Col> cols;                 // Колонки
+    std::vector<std::string> y;            // Введенное y
+    std::vector<std::string> y_optimized;  // y оптимизированное
+
+    int _form;
 
     /* Функция проверяет совпадающие параметры(символы) 
      * Если все символы равны, но разные по значению \return true
@@ -157,10 +164,42 @@ class Quain {
         }
     }
 
+    void get_y_optimized() {
+        if (cols.empty()) {
+            y_optimized = y;
+            return;
+        }
+
+        // Убрали повторяющиеся элементы, после второго склеивания
+        auto y_last_buffer = get_y(cols.back());
+        std::set<std::string> y_set_buf( y_last_buffer.begin(), y_last_buffer.end());
+    
+        // Убираем сокращенные элементы из первой колонки
+        std::vector<std::string> y_buffer = clear_pred_vector(); 
+
+        // на этом этапе получаем финальную колонку где просто просуммировать надо
+        for (size_t i = 0; i < y_buffer.size(); ++i)
+            y_set_buf.insert(y_buffer[i]);
+
+        std::copy(y_set_buf.begin(), y_set_buf.end(), std::back_inserter(y_optimized));
+    } 
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                  Вывод
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
     std::string conventer_to_tex(const std::string &str) {
+        switch (_form) {
+            case PDNF:
+                return conventer_to_tex_PDNF(str);
+            case PCNF:
+                return conventer_to_tex_PCNF(str);
+            default:
+                std::cout << "что то не так с переменной _form в классе Quain: " << _form << std::endl;
+                throw;
+        }
+    }
+
+    std::string conventer_to_tex_PDNF(const std::string &str) {
         std::string msg = "$";
         for (size_t i = 0; i < str.size(); ++i) {
             switch (int(std::tolower(str[i]))) {
@@ -179,6 +218,55 @@ class Quain {
             };
         }   
         msg += "$";
+        return msg;
+    }
+
+    std::string conventer_to_tex_PCNF(const std::string &str) {
+        std::string msg = "$(";
+        for (size_t i = 0; i < str.size(); ++i) {
+            switch (int(std::tolower(str[i]))) {
+                case 97:
+                    msg += ((str[i] == 'a') ? "x_0 " : "\\bar{x_0} ");
+                    break;
+                case 98:
+                    msg += ((str[i] == 'b') ? "x_1 " : "\\bar{x_1} ");
+                    break;
+                case 99:
+                    msg += ((str[i] == 'c') ? "x_2 " : "\\bar{x_2} ");
+                    break;
+                case 100:
+                    msg += ((str[i] == 'd') ? "x_3 " : "\\bar{x_3} ");
+                    break;
+            };
+            if (i < (str.size() - 1)) {
+                msg += "\\vee ";
+            }
+        }
+        msg += ")$";
+        return msg;
+    }
+
+    std::string out_abcd(const std::string &str) {
+        switch (_form) {
+            case PDNF:
+                return str;
+            case PCNF:
+                return out_abcd_PCNF(str);
+            default:
+                std::cout << "что то не так с переменной _form в классе Quain: " << _form << std::endl;
+                throw;
+        }
+    }
+
+    std::string out_abcd_PCNF(const std::string &str) {
+        std::string msg = "(";
+        for (size_t i = 0; i < str.size(); ++i) {
+            msg += str[i];
+            if (i < (str.size() - 1)) {
+                msg += " + ";
+            }
+        }
+        msg += ")";
         return msg;
     }
 
@@ -218,7 +306,7 @@ class Quain {
 
     }
 
-    void print_tex(const std::vector<std::string> &y, const std::vector<std::string> &y_optimized, const std::string &symbol) {
+    void print_tex(const std::string &symbol) {
         size_t size_row = get_size_row( y, y_optimized); 
         out_1();
         for (size_t i = 0; i < size_row; ++i) {
@@ -256,52 +344,44 @@ class Quain {
         out_2( y_optimized, symbol);
     }
  
-#if 0
-    void print(const std::vector<std::string> &y, const std::vector<std::pair<std::vector<Implicant>, 
-        std::vector<std::string>>> &cols, const std::vector<std::string> &y_optimized) {
-        // Определим максимальное колличество строк
-        std::vector<size_t> size_v;
-        size_v.push_back(y.size()); 
-        for (size_t i = 0; i < cols.size(); ++i) {
-            size_v.push_back(cols[i].second.size());
-        }
-        size_v.push_back(y_optimized.size());
-        size_t size_row = *std::max_element( size_v.begin(), size_v.end()); 
-        size_v.clear();
-
+    void print() {
+        size_t size_row = get_size_row( y, y_optimized);
         for (size_t i = 0; i < size_row; ++i) {
             try {
-                std::cout << y.at(i) << " " << std::setw(2) << i << "|";
+                std::cout << out_abcd(y.at(i)) << " " << std::setw(2) << i << "|";
             } catch (...) {
-                std::cout << std::setfill(' ') << std::setw((y[0].size() + 1 + 2 + 1)) << "|"; 
+                std::cout << std::setfill(' ') << std::setw((out_abcd(y[0]).size() + 1 + 2 + 1)) << "|"; 
             }
-
             for (size_t j = 0; j < cols.size(); ++j) {
                 try {
-                    auto imp = cols[j].first.at(i);
-                    std::cout << imp.first.first << "+" << imp.first.second << "=" << imp.second << " " << std::setw(2) << i;
+                    auto imp = cols[j].at(i);
+                    std::cout << std::setw(2) << imp.first._l_num;
+                    for (size_t k = 0; k < j; ++k)
+                        std::cout << "'";
+                    std::cout << " + " << std::setw(2) << imp.first._r_num;
+                    for (size_t k = 0; k < j; ++k)
+                        std::cout << "'";
+                    std::cout << " = " << out_abcd(imp.second) << " " << std::setw(2) << i;
                     for (size_t k = 0; k < (j + 1); ++k)
                         std::cout << "'";
-                    std::cout << "|";
+                    std::cout << " |";
                 } catch(...) {
-                    auto imp_c = cols[j].first[0];
-                    std::cout << std::setfill (' ') << std::setw((2 * imp_c.first.first.size() + imp_c.second.size() + 3 + 2 + (2 *j + 1))) << "|";
+                    std::cout << std::setfill(' ') 
+                              << std::setw((16 + 3 * j + out_abcd(cols[j][0].second).size())) << " |";
                 }
             }
             try {
-                std::cout << std::setw(3) << y_optimized.at(i) << "|" << std::endl; 
+                std::cout << out_abcd(y_optimized.at(i)) << std::endl; 
             } catch (...) {
-                std::cout << "   |" << std::endl;
+                std::cout << std::endl;
             }
         } 
-
-        std::cout << "y = " << y_optimized[0]; 
+        std::cout << "y = " << out_abcd(y_optimized[0]); 
         for (size_t i = 1; i < y_optimized.size(); ++i) {
-            std::cout << " + " << y_optimized[i]; 
+            std::cout << " + " << out_abcd(y_optimized[i]); 
         }
         std::cout << std::endl;
     }
-#endif
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////// 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
    
@@ -314,6 +394,8 @@ class Quain {
             cols[i].clear();
         }
         cols.clear();
+        y.clear();
+        y_optimized.clear();
     }
 
     public:
@@ -322,29 +404,19 @@ class Quain {
         clear();
     }
         
-    void method(const std::vector<std::string> &y, const bool &tex = false, const std::string &symbol = "a") {
+    void method(const int &form, const std::vector<std::string> &y_in, const bool &tex = false, const std::string &symbol = "a") {
+        _form = form;
+        y = y_in;
+        // Получаем все колонки, возможно ситуация при которой колонок не будет вовсе
         get_cols(y);
 
-        // Убрали повторяющиеся элементы, после второго склеивания
-        auto y_last_buffer = get_y(cols.back());
-        std::set<std::string> y_set_buf( y_last_buffer.begin(), y_last_buffer.end());
-    
-        // Убираем сокращенные элементы из первой колонки
-        std::vector<std::string> y_buffer = clear_pred_vector(); 
+        // Получаем оптимизированный y
+        get_y_optimized();
 
-        // на этом этапе получаем финальную колонку где просто просуммировать надо
-        for (size_t i = 0; i < y_buffer.size(); ++i)
-            y_set_buf.insert(y_buffer[i]);
-
-        std::vector<std::string> y_optimized;  // y финальный ответ, оптимизированное выражение
-        std::copy(y_set_buf.begin(), y_set_buf.end(), std::back_inserter(y_optimized));
-
-        if (!tex) {
-            std::cout << "Оптимизация для СДНФ" << std::endl;
-            // лень делать
-            //print(y, y_optimized);  // Красивый выход
+        if (!tex) {  // вынести
+            print();
         } else {
-            print_tex(y, y_optimized, symbol);
+            print_tex(symbol);
         }
         clear();
     }
@@ -352,6 +424,14 @@ class Quain {
 
 void get_quain_method() {
     Quain quain;
+    quain.method( PDNF, std::vector<std::string>{ "ABCD", "ABcD", "ABcd", "AbCd", "AbcD", "Abcd", "aBCD", "aBCd", "aBcD"});
+    quain.method( PDNF, std::vector<std::string>{ "ABCD", "ABCd", "ABcD", "ABcd", "AbCD", "Abcd", "aBCD", "aBCd", "aBcD"});
+    quain.method( PDNF, std::vector<std::string>{ "ABCD", "ABCd", "ABcd", "AbCD", "AbCd", "AbcD", "Abcd", "aBCD", "aBCd", "aBcD"});
+    quain.method( PDNF, std::vector<std::string>{ "ABCD", "ABcD", "ABcd", "AbCd", "AbcD", "aBCD", "aBCd"});
+    quain.method( PDNF, std::vector<std::string>{ "ABCD", "ABcD", "AbcD", "aBCD", "aBcD"});
+    quain.method( PDNF, std::vector<std::string>{ "ABCD", "AbCD", "AbCd", "AbcD", "aBCD", "aBCd", "aBcD"});
+    quain.method( PDNF, std::vector<std::string>{ "ABcD", "ABcd", "AbCD", "AbCd", "AbcD", "aBCD", "aBCd"});
+#if 0
     quain.method(std::vector<std::string>{ "ABCD", "ABcD", "ABcd", "AbCd", "AbcD", "Abcd", "aBCD", "aBCd", "aBcD"}, true, "a");
     quain.method(std::vector<std::string>{ "ABCD", "ABCd", "ABcD", "ABcd", "AbCD", "Abcd", "aBCD", "aBCd", "aBcD"}, true, "b");
     quain.method(std::vector<std::string>{ "ABCD", "ABCd", "ABcd", "AbCD", "AbCd", "AbcD", "Abcd", "aBCD", "aBCd", "aBcD"}, true, "c");
@@ -359,6 +439,7 @@ void get_quain_method() {
     quain.method(std::vector<std::string>{ "ABCD", "ABcD", "AbcD", "aBCD", "aBcD"}, true, "e");
     quain.method(std::vector<std::string>{ "ABCD", "AbCD", "AbCd", "AbcD", "aBCD", "aBCd", "aBcD"}, true, "f");
     quain.method(std::vector<std::string>{ "ABcD", "ABcd", "AbCD", "AbCd", "AbcD", "aBCD", "aBCd"}, true, "g");
+#endif
 }
 
 int main() {
