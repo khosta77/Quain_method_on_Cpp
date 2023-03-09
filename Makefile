@@ -1,7 +1,8 @@
 TARGET=./a.out
 CC=g++
 SRCS=\
-	./main.cpp
+	./main.cpp \
+	./Quain.cpp
 STD=-std=c++17  # Версия cpp
 
 all: clean $(TARGET)
